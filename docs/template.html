@@ -1,0 +1,238 @@
+<title>Hit Length Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+:root{
+  --bg:#fbfaf6; --fg:#1d1c1a; --fg2:#5b5850; --fg3:#8f8a80; --rule:#e6e2da; --rule2:#cfc9bd;
+  --red:#c4382c; --band:rgba(196,56,44,.07); --dot:rgba(29,28,26,.16); --dotdim:rgba(29,28,26,.06);
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif; --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171614; --fg:#ece9e2; --fg2:#b4afa5; --fg3:#7f7a71; --rule:#2c2a26; --rule2:#45423c;
+  --red:#ef6b5c; --band:rgba(239,107,92,.09); --dot:rgba(236,233,226,.17); --dotdim:rgba(236,233,226,.06); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171614; --fg:#ece9e2; --fg2:#b4afa5; --fg3:#7f7a71; --rule:#2c2a26; --rule2:#45423c;
+  --red:#ef6b5c; --band:rgba(239,107,92,.09); --dot:rgba(236,233,226,.17); --dotdim:rgba(236,233,226,.06); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--sans);margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-block:48px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:600 clamp(30px,5vw,46px)/1.08 var(--serif);letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance}
+p{margin:0 0 14px;max-width:66ch}
+.intro{color:var(--fg2)}
+.tools{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;margin:28px 0 8px}
+.tools label{display:grid;gap:2px;font-size:13px;color:var(--fg2)}
+.tools input,.tools select{font:16px var(--sans);color:var(--fg);background:transparent;border:0;border-bottom:1.5px solid var(--rule2);padding:4px 0;border-radius:0}
+.tools input{width:min(340px,80vw)}
+.tools input:focus,.tools select:focus{outline:none;border-bottom-color:var(--fg)}
+.count{font-size:13px;color:var(--fg3);margin-left:auto}
+.chart{position:relative;width:100%;aspect-ratio:16/9;min-height:300px;max-width:100%}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:13px;line-height:1.35;padding:6px 9px;border-radius:4px;max-width:250px;transform:translate(-50%,calc(-100% - 10px));z-index:2}
+.key{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;color:var(--fg2);margin:6px 0 30px}
+.key i{display:inline-block;width:18px;height:2.5px;vertical-align:middle;margin-right:6px}
+.year{border-top:1px solid var(--rule);padding-top:22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 40px}
+@media (max-width:720px){.year{grid-template-columns:minmax(0,1fr)}}
+.year h2{font:600 26px/1.2 var(--serif);margin:0 0 6px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.year h2 input{flex:1 1 160px;accent-color:var(--red)}
+.play{font:500 14px var(--sans);color:var(--fg);background:transparent;border:1.5px solid var(--fg);border-radius:999px;padding:3px 14px;cursor:pointer}
+.play:hover{background:var(--fg);color:var(--bg)}
+.hist{width:100%;height:auto;display:block;margin:4px 0 4px;overflow:visible}
+.hist text{font:11px var(--sans);fill:var(--fg3)}
+.histkey{font-size:12.5px;color:var(--fg3);margin:0}
+.year p{color:var(--fg)}
+.year b{font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+.results{border-top:1px solid var(--rule);margin-top:26px;padding-top:18px}
+.results h3{font:600 20px var(--serif);margin:0 0 8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td{padding:6px 10px 6px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+td.y,td.l,td.p{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--fg2)}
+td.l{color:var(--fg)}
+.tablewrap{max-height:360px;overflow:auto}
+.muted{color:var(--fg3);font-size:14px}
+footer{margin-top:40px;font-size:13px;color:var(--fg3);border-top:1px solid var(--rule);padding-top:14px}
+footer p{max-width:none}
+footer a{color:var(--fg2)}
+</style>
+
+<div class="wrap">
+  <h1>Every Hot 100 hit since 1958, by how long it runs</h1>
+  <p class="intro">This goes with my project on whether streaming made songs shorter. Each dot is one of the 24,000+ songs that made the Billboard Hot 100 between 1958 and 2021, placed by the year it first charted and its length on Spotify. The line through the middle is the average for each year. Search for an artist or a song to find it, or hover over any dot.</p>
+
+  <div class="tools">
+    <label>Artist or song<input id="q" type="search" placeholder="e.g. Drake, Prince, Old Town Road" autocomplete="off"></label>
+    <label>Genre<select id="genre"><option value="-1">All genres</option></select></label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="chart" id="box"><canvas id="cv" role="img" aria-label="Every Hot 100 song's length by the year it first charted"></canvas><div class="tip" id="tip" hidden></div></div>
+  <div class="key"><span><i style="background:var(--fg)"></i>Average new hit</span><span><i style="background:var(--red)"></i>Year-End top 100 (to 2023)</span><span><i style="background:var(--red);height:8px;width:8px;border-radius:50%"></i>Your search, or the year you picked</span><span>Shaded: 2016 on, when streaming took over</span></div>
+
+  <section class="year" aria-live="polite">
+    <div>
+      <h2><span id="yv" class="num">2019</span><input type="range" id="yr" min="1958" max="2020" value="2019" aria-label="Pick a year"><button class="play" id="play" type="button">Play</button></h2>
+      <p id="ytext"></p>
+      <svg class="hist" id="hist" viewBox="0 0 420 110" role="img" aria-label="Song lengths that year compared with 1992"></svg>
+      <p class="histkey"><span style="color:var(--red)">■</span> this year &nbsp; <span style="color:var(--fg2)">—</span> 1992, when hits were longest</p>
+    </div>
+    <div>
+      <h2 style="font-size:20px">Plays per hour</h2>
+      <p id="ptext"></p>
+    </div>
+  </section>
+
+  <section class="results">
+    <h3 id="rh">Search results</h3>
+    <div id="rlist"><p class="muted">Search for an artist or song above to list every match, with its length and how high it got.</p></div>
+  </section>
+
+  <footer>
+    <p>Data: weekly Billboard Hot 100 charts and Spotify song lengths (TidyTuesday, 2021), and the Year-End Hot 100 with Spotify lengths for 2010–2023. Lengths are the Spotify version of each song; about 1 in 6 songs before 2020 doesn't have one, and 2020–21 are incomplete. Genres come from Spotify's tags for each artist.</p>
+    <p>Made by Jordan Salter · <a href="https://github.com/jlsalter/hit-length">code and write-up on GitHub</a></p>
+  </footer>
+</div>
+
+<script>
+const DATA = /*DATA*/;
+(() => {
+  const $ = id => document.getElementById(id);
+  const G = DATA.genres, N = DATA.songs.length;
+  const yr = new Int16Array(N), sec = new Int16Array(N), gen = new Int8Array(N), peak = new Int16Array(N), jit = new Float32Array(N), low = [];
+  DATA.songs.forEach((s, i) => {
+    yr[i] = s[0]; sec[i] = s[1]; gen[i] = s[2]; peak[i] = s[3];
+    let h = 2166136261; for (const c of s[5] + s[6]) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    jit[i] = ((h >>> 0) % 1000) / 1000 - 0.5;
+    low.push((s[5] + " " + s[6]).toLowerCase());
+  });
+  G.forEach((g, i) => { const o = document.createElement("option"); o.value = i; o.textContent = g; $("genre").appendChild(o); });
+  let genre = -1, query = "", matches = [], year = 2019, hover = -1;
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const shown = i => genre < 0 || gen[i] === genre;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const cv = $("cv"), ctx = cv.getContext("2d");
+  const X0 = 1956.5, X1 = 2024.5, Y0 = 60, Y1 = 420;
+  let W = 0, H = 0; const pad = { l: 44, r: 8, t: 10, b: 26 };
+  const px = x => pad.l + (x - X0) / (X1 - X0) * (W - pad.l - pad.r);
+  const py = s => pad.t + (1 - (Math.min(Math.max(s, Y0), Y1) - Y0) / (Y1 - Y0)) * (H - pad.t - pad.b);
+  const dx = i => px(yr[i] + jit[i] * 0.8);
+  function size() { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+
+  function draw() {
+    const c = getComputedStyle(document.documentElement), v = k => c.getPropertyValue(k).trim();
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = v("--band"); ctx.fillRect(px(2015.5), pad.t, px(2019.5) - px(2015.5), H - pad.t - pad.b);
+    ctx.font = `12px ${v("--sans")}`; ctx.textBaseline = "middle";
+    for (let s = 60; s <= 420; s += 60) {
+      ctx.strokeStyle = v("--rule"); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, py(s)); ctx.lineTo(W - pad.r, py(s)); ctx.stroke();
+      ctx.fillStyle = v("--fg3"); ctx.textAlign = "right"; ctx.fillText(fmt(s) + (s === 420 ? "+" : ""), pad.l - 6, py(s));
+    }
+    ctx.textAlign = "center";
+    for (let x = 1960; x <= 2020; x += 10) ctx.fillText(x, px(x), H - pad.b + 15);
+    ctx.strokeStyle = v("--fg"); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px(year), pad.t); ctx.lineTo(px(year), H - pad.b); ctx.setLineDash([2, 3]); ctx.stroke(); ctx.setLineDash([]);
+    const r = W < 500 ? 1.2 : 1.6;
+    ctx.fillStyle = query ? v("--dotdim") : v("--dot");
+    for (let i = 0; i < N; i++) if (shown(i)) ctx.fillRect(dx(i) - r, py(sec[i]) - r, 2 * r, 2 * r);
+    if (!query) { ctx.fillStyle = v("--red"); ctx.globalAlpha = .55; for (let i = 0; i < N; i++) if (yr[i] === year && shown(i)) ctx.fillRect(dx(i) - r, py(sec[i]) - r, 2 * r, 2 * r); ctx.globalAlpha = 1; }
+    const line = (o, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); Object.entries(o).forEach(([y, s], k) => k ? ctx.lineTo(px(+y), py(s)) : ctx.moveTo(px(+y), py(s))); ctx.stroke(); };
+    if (genre < 0) line(DATA.year_avg, v("--fg"), 2.2);
+    else {
+      const sums = {}; for (let i = 0; i < N; i++) if (gen[i] === genre && yr[i] <= 2020) { (sums[yr[i]] ||= [0, 0]); sums[yr[i]][0] += sec[i]; sums[yr[i]][1]++; }
+      const o = {}; Object.keys(sums).forEach(y => { if (sums[y][1] >= 5) o[y] = sums[y][0] / sums[y][1]; }); line(o, v("--fg"), 2.2);
+    }
+    line(DATA.year_end_avg, v("--red"), 2);
+    if (query) { ctx.fillStyle = v("--red"); matches.forEach(i => { if (shown(i)) { ctx.beginPath(); ctx.arc(dx(i), py(sec[i]), 3.6, 0, 7); ctx.fill(); } }); }
+    if (hover >= 0) { ctx.strokeStyle = v("--fg"); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(dx(hover), py(sec[hover]), 6, 0, 7); ctx.stroke(); }
+  }
+
+  function yearText() {
+    $("yv").textContent = year; $("yr").value = year;
+    const idx = []; for (let i = 0; i < N; i++) if (yr[i] === year && shown(i)) idx.push(i);
+    const gname = genre < 0 ? "new hit" : `new ${G[genre].toLowerCase()} hit`;
+    if (!idx.length) { $("ytext").textContent = `No ${gname}s with a length that year.`; return; }
+    const avg = idx.reduce((a, i) => a + sec[i], 0) / idx.length, u3 = idx.filter(i => sec[i] < 180).length / idx.length;
+    const top = idx.filter(i => peak[i] <= 10).sort((a, b) => sec[a] - sec[b]);
+    const S = i => `<i>${esc(DATA.songs[i][5])}</i> by ${esc(DATA.songs[i][6])} (${fmt(sec[i])})`;
+    $("ytext").innerHTML = `The average ${gname} in ${year} ran <b class="num">${fmt(avg)}</b>, across ${idx.length.toLocaleString()} songs. ` +
+      `<b class="num">${Math.round(100 * u3)}%</b> were under three minutes.` +
+      (top.length > 1 ? ` The shortest top-10 hit was ${S(top[0])}, and the longest was ${S(top[top.length - 1])}.` : "") +
+      (year >= 2020 ? ` <span class="muted">(${year} is missing a lot of songs.)</span>` : "");
+    hist(idx);
+    const a = DATA.year_avg[year], b = DATA.year_avg[1992];
+    if (a) {
+      const pa = 3600 / a, pb = 3600 / b, d = Math.round(100 * (pa / pb - 1));
+      $("ptext").innerHTML = `A stream counts after 30 seconds, no matter how long the song is. An hour of ${year}'s average-length hits is <b class="num">${pa.toFixed(1)}</b> plays. ` +
+        (year === 1992 ? `That's the lowest of any year, since 1992 hits were the longest.` :
+          `In 1992, when hits were longest, the same hour was <b class="num">${pb.toFixed(1)}</b> plays, so ${year} gets <b>${Math.abs(d)}% ${d >= 0 ? "more" : "fewer"}</b> paid plays from the same hour of listening.`);
+    }
+  }
+
+  // distribution of the chosen year vs 1992, 15-second bins from 1:00 to 7:00
+  const ref = []; for (let i = 0; i < N; i++) if (yr[i] === 1992) ref.push(i);
+  function bins(ix) { const b = new Array(24).fill(0); ix.forEach(i => { const k = Math.min(23, Math.max(0, Math.floor((sec[i] - 60) / 15))); b[k]++; }); return b.map(x => x / Math.max(1, ix.length)); }
+  function hist(ix) {
+    const svg = $("hist"), a = bins(ix), b = bins(ref), mx = Math.max(...a, ...b, .01), w = 420 / 24, h = 86;
+    let out = "";
+    a.forEach((v, k) => { const hh = v / mx * h; out += `<rect x="${k * w + 1}" y="${h - hh}" width="${w - 2}" height="${hh}" fill="var(--red)" opacity=".8"/>`; });
+    let d = ""; b.forEach((v, k) => { const y = h - v / mx * h; d += `${k ? "L" : "M"}${k * w},${y}H${(k + 1) * w}`; });
+    out += `<path d="${d}" fill="none" stroke="var(--fg2)" stroke-width="1.5"/>`;
+    out += `<line x1="0" x2="420" y1="${h}" y2="${h}" stroke="var(--rule2)"/>`;
+    [60, 120, 180, 240, 300, 360, 420].forEach(s => { const x = (s - 60) / 15 * w; out += `<text x="${x}" y="${h + 16}" text-anchor="${s === 60 ? "start" : s === 420 ? "end" : "middle"}">${fmt(s)}${s === 420 ? "+" : ""}</text>`; });
+    out += `<line x1="${8 * w}" x2="${8 * w}" y1="0" y2="${h}" stroke="var(--fg3)" stroke-dasharray="2 3"/>`;
+    svg.innerHTML = out;
+  }
+
+  let timer = null;
+  function stop() { clearInterval(timer); timer = null; $("play").textContent = "Play"; }
+  $("play").addEventListener("click", () => {
+    if (timer) return stop();
+    if (year >= 2019) year = 1958;
+    $("play").textContent = "Pause";
+    timer = setInterval(() => { year++; yearText(); draw(); if (year >= 2019) stop(); }, 220);
+    yearText(); draw();
+  });
+
+  function search() {
+    query = $("q").value.trim().toLowerCase(); matches = [];
+    if (query.length >= 2) for (let i = 0; i < N; i++) if (low[i].includes(query)) matches.push(i);
+    matches.sort((a, b) => yr[a] - yr[b] || sec[a] - sec[b]);
+    const m = matches.filter(shown);
+    if (!query) { $("rh").textContent = "Search results"; $("rlist").innerHTML = '<p class="muted">Search for an artist or song above to list every match, with its length and how high it got.</p>'; $("count").textContent = ""; }
+    else if (!m.length) { $("rh").textContent = "Search results"; $("rlist").innerHTML = '<p class="muted">Nothing matches that.</p>'; $("count").textContent = "0 songs"; }
+    else {
+      const avg = m.reduce((a, i) => a + sec[i], 0) / m.length;
+      $("count").textContent = `${m.length.toLocaleString()} song${m.length > 1 ? "s" : ""}, averaging ${fmt(avg)}`;
+      $("rh").textContent = `“${$("q").value.trim()}”`;
+      $("rlist").innerHTML = `<div class="tablewrap"><table><tbody>${m.slice(0, 250).map(i => `<tr><td class="y">${yr[i]}</td><td><i>${esc(DATA.songs[i][5])}</i> · ${esc(DATA.songs[i][6])}</td><td class="l">${fmt(sec[i])}</td><td class="p">#${peak[i]}</td></tr>`).join("")}</tbody></table></div>` +
+        (m.length > 250 ? `<p class="muted">First 250 shown.</p>` : "");
+    }
+    draw();
+  }
+
+  let t; $("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(search, 120); });
+  $("genre").addEventListener("change", e => { genre = +e.target.value; search(); yearText(); });
+  $("yr").addEventListener("input", e => { stop(); year = +e.target.value; yearText(); draw(); });
+  cv.addEventListener("mousemove", ev => {
+    const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let best = -1, bd = 64; const pool = query && matches.length ? matches : null;
+    const test = i => { if (!shown(i)) return; const a = dx(i) - mx, b = py(sec[i]) - my, d = a * a + b * b; if (d < bd) { bd = d; best = i; } };
+    if (pool) pool.forEach(test); else for (let i = 0; i < N; i++) test(i);
+    if (best === hover) return; hover = best;
+    const tip = $("tip");
+    if (best < 0) tip.hidden = true;
+    else { const s = DATA.songs[best]; tip.innerHTML = `<i>${esc(s[5])}</i><br>${esc(s[6])}<br>${s[0]} · ${fmt(s[1])} · peaked at #${s[3]}`; tip.style.left = dx(best) + "px"; tip.style.top = py(sec[best]) + "px"; tip.hidden = false; }
+    draw();
+  });
+  cv.addEventListener("mouseleave", () => { hover = -1; $("tip").hidden = true; draw(); });
+  cv.addEventListener("click", ev => {
+    const r = cv.getBoundingClientRect(), y = Math.round(X0 + (ev.clientX - r.left - pad.l) / (W - pad.l - pad.r) * (X1 - X0));
+    if (y >= 1958 && y <= 2020) { stop(); year = y; yearText(); draw(); }
+  });
+  new ResizeObserver(() => { size(); draw(); }).observe($("box"));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  size(); yearText(); draw();
+})();
+</script>
