@@ -17,7 +17,7 @@ R, F = Path("results"), Path("figures"); F.mkdir(exist_ok=True)
 for f in Path("fonts").glob("*.ttf"):
     font_manager.fontManager.addfont(str(f))
 
-INK, INK2, GRID, BG, MUTED = "#1d1c1a", "#5b5850", "#e6e2da", "#fbfaf6", "#bdb7ab"
+INK, INK2, GRID, BG, MUTED = "#1a1a1a", "#555555", "#e5e5e5", "#ffffff", "#bbbbbb"
 RED, BLUE = "#c4382c", "#3c6896"
 plt.rcParams.update({
     "font.family": "Chart Sans", "font.size": 10, "axes.edgecolor": INK2, "axes.labelcolor": INK2,
